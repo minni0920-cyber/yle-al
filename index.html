@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>劍橋英語守衛戰 - 完整版</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #2c3e50; color: white; text-align: center; margin: 0; overflow: hidden; }
+        #game-container { max-width: 850px; margin: 20px auto; background: #34495e; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); }
+        #battle-stage { height: 240px; position: relative; background: linear-gradient(to bottom, #5d9cec, #48cfad); border-radius: 10px; margin-bottom: 20px; overflow: hidden; border: 4px solid #2c3e50; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 40px; background: #70a1ff; }
+        .fortress { position: absolute; left: 10px; bottom: 20px; font-size: 80px; z-index: 5; }
+        .monster { position: absolute; right: 30px; bottom: 20px; font-size: 85px; transition: all 0.3s; z-index: 4; }
+        .soldier { position: absolute; left: 85px; bottom: 35px; font-size: 50px; display: none; z-index: 6; transition: transform 0.6s ease-in; }
+        .hp-bar-outer { position: absolute; top: 15px; width: 200px; height: 26px; background: #fff; border-radius: 13px; border: 3px solid #2c3e50; overflow: hidden; }
+        .hp-inner { height: 100%; width: 100%; transition: width 0.5s; }
+        #f-hp-bar { left: 20px; } #m-hp-bar { right: 20px; }
+        
+        /* 選擇介面加強 */
+        #start-area { padding: 30px; background: rgba(0,0,0,0.2); border-radius: 15px; margin-top: 10px; }
+        .level-btn { 
+            display: inline-block; 
+            width: 250px; 
+            padding: 20px; 
+            margin: 15px; 
+            font-size: 26px; 
+            font-weight: bold; 
+            color: white; 
+            border: none; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .level-btn:active { transform: translateY(4px); }
+        .starters { background: #3498db; box-shadow: 0 8px #2980b9; }
+        .movers { background: #9b59b6; box-shadow: 0 8px #8e44ad; }
+        .starters:hover { background: #2980b9; }
+        .movers:hover { background: #8e44ad; }
+
+        /* 遊戲中 UI */
+        #spelling-zone { min-height: 60px; margin: 10px 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .letter-slot { width: 45px; height: 55px; background: rgba(255,255,255,0.2); border-bottom: 4px solid white; font-size: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; }
+        #letter-pool { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+        .pool-btn { padding: 12px 20px; font-size: 28px; background: #ecf0f1; color: #2c3e50; border-radius: 8px; cursor: pointer; border: none; box-shadow: 0 4px #bdc3c7; font-weight: bold; }
+        .pool-btn.used { visibility: hidden; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .btn-opt { padding: 20px; font-size: 24px; cursor: pointer; border: none; border-radius: 12px; background: #f1c40f; color: #2c3e50; font-weight: bold; box-shadow: 0 6px #d35400; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="prog-info" style="color:#bdc3c7; font-size:16px; margin-bottom:10px;">🛡️ 準備啟動防線...</div>
+    <div id="battle-stage">
+        <div class="ground"></div>
+        <div id="f-hp-bar" class="hp-bar-outer"><div id="f-fill" class="hp-inner" style="background: #2ecc71;"></div></div>
+        <div id="m-hp-bar" class="hp-bar-outer"><div id="m-fill" class="hp-inner" style="background: #e74c3c;"></div></div>
+        <div class="fortress">🏰</div><div id="soldier" class="soldier">⚔️</div><div id="monster" class="monster">👾</div>
+    </div>
+
+    <div id="quiz-area">
+        <div id="mode-title" style="color:#f1c40f; font-weight:bold; font-size:24px; margin-bottom:10px;"></div>
+        <div id="question-text" style="font-size: 45px; margin: 15px; min-height: 60px; font-weight:bold;">劍橋守衛戰</div>
+        
+        <div id="start-area">
+            <h3 style="margin-bottom: 20px; color: #ecf0f1;">請選擇你的挑戰等級</h3>
+            <button class="level-btn starters" onclick="startGame('starters')">PRE-A1<br>Starters</button>
+            <button class="level-btn movers" onclick="startGame('movers')">A1<br>Movers</button>
+        </div>
+
+        <div id="spelling-ui" style="display:none;">
+            <div id="spelling-zone"></div>
+            <div id="letter-pool"></div>
+        </div>
+
+        <div id="choice-ui" style="display:none;">
+            <div class="options-grid" id="options"></div>
+        </div>
+
+        <button id="voice-btn" onclick="playVoice()" style="display:none; background:#3498db; color:white; border:none; padding:15px 40px; border-radius:50px; margin: 25px auto; cursor:pointer; font-size:20px; box-shadow: 0 4px #2980b9;">🔊 重播發音</button>
+    </div>
+</div>
+
+<div id="msg-screen" class="overlay" style="display:none;">
+    <h1 id="msg-title" style="color:#f1c40f; font-size:48px;"></h1>
+    <p id="msg-body" style="font-size:24px; margin:20px;"></p>
+    <button id="msg-btn" style="padding:15px 60px; font-size:26px; border-radius:15px; cursor:pointer; background:#2ecc71; color:white; border:none; box-shadow: 0 6px #27ae60;"></button>
+</div>
+
+<script>
+    const startersDB = [
+        {en:'cat', zh:'貓'}, {en:'apple', zh:'蘋果'}, {en:'elephant', zh:'大象'}, {en:'twelve', zh:'12'},
+        {en:'purple', zh:'紫色'}, {en:'armchair', zh:'扶手椅'}, {en:'keyboard', zh:'鍵盤'}, {en:'spider', zh:'蜘蛛'},
+        {en:'bag', zh:'包包'}, {en:'banana', zh:'香蕉'}, {en:'pencil', zh:'鉛筆'}, {en:'white', zh:'白色'}
+    ];
+
+    const moversDB = [
+        {en:'crocodile', zh:'鱷魚'}, {en:'helicopter', zh:'直升機'}, {en:'kangaroo', zh:'袋鼠'}, {en:'dolphin', zh:'海豚'},
+        {en:'toothbrush', zh:'牙刷'}, {en:'sweater', zh:'毛衣'}, {en:'library', zh:'圖書館'}, {en:'mountain', zh:'山'},
+        {en:'vegetable', zh:'蔬菜'}, {en:'elevator', zh:'電梯'}, {en:'basement', zh:'地下室'}, {en:'opposite', zh:'相反的'}
+    ];
+
+    let wordDB = [];
+    let currentWord = null;
